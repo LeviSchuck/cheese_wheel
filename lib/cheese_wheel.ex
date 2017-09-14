@@ -1,6 +1,6 @@
 defmodule CheeseWheel do
   def start_link(params) do
-    CheeseWheel.Repo(params)
+    CheeseWheel.Repo.start_link(params)
   end
   def get(repo_or_name, key) do
     CheeseWheel.Repo.get(repo_or_name, key)

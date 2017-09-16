@@ -1,5 +1,6 @@
 defmodule CheeseWheel.Repo do
   use GenServer
+  require Logger
 
   def start_link(state) do
     GenServer.start_link(__MODULE__, state)
@@ -45,12 +46,18 @@ defmodule CheeseWheel.Repo do
         # Time to do the dirty work
         case File.read(file_path(path, key)) do
           {:ok, content} ->
-            document = CheeseWheel.Serial.safe_decode(content)
-            :ok = cache_doc(limit, table, key, document)
-            {:reply, document, state}
+            result = try do
+              {:ok, CheeseWheel.Serial.safe_decode(content)}
+            rescue
+              ArgumentError ->
+                Logger.debug("Failed to parse content: #{inspect content}")
+                :could_not_parse
+            end
+            :ok = cache_doc(limit, table, key, result)
+            {:reply, result, state}
           _ ->
-            :ok = cache_doc(limit, table, key, nil)
-            {:reply, nil, state}
+            :ok = cache_doc(limit, table, key, :not_found)
+            {:reply, :not_found, state}
         end
       [result] -> {:reply, result, state}
     end
@@ -59,7 +66,7 @@ defmodule CheeseWheel.Repo do
   def handle_call({:set, key, document}, _from, state) do
     {path, limit, _, table} = state
     :ok = save_doc(document, file_path(path, key))
-    :ok = cache_doc(limit, table, key, document)
+    :ok = cache_doc(limit, table, key, {:ok, document})
     {:reply, :ok, state}
   end
 

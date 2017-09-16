@@ -75,10 +75,7 @@ defmodule CheeseWheel.Serial do
     def decode({:bert, :dict, dict}), do: Enum.into(Bert.decode(dict), %{})
 
     # Structs is something I made.
-    def decode({:bert, :struct, mod, struct}) do
-      struct = Bert.decode(struct) |> Enum.into(%{})
-      Kernel.struct(mod, struct)
-    end
+    def decode({:struct, mod, struct}), do: Kernel.struct(mod, Bert.decode(struct))
 
     def decode(tuple) do
       Tuple.to_list(tuple)
@@ -100,8 +97,8 @@ defmodule CheeseWheel.Serial do
   end
 
   defimpl Bert, for: Any do
-    # Unfortunately, I can't do a for Struct. :(
-    def encode(%{__struct__: mod} = struct), do: {:bert, :struct, mod, Map.to_list(Map.from_struct(struct))}
+    # Unfortunately, I can't do a `for: Struct`. :(
+    def encode(%{__struct__: mod} = struct), do: {:struct, mod, Bert.encode(Map.from_struct(struct))}
     def encode(term), do: term
     def decode(term), do: term
   end
